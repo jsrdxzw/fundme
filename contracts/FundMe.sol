@@ -3,13 +3,13 @@ pragma solidity ^0.8.28;
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 contract FundMe {
-    AggregatorV3Interface internal dataFeed;
+    AggregatorV3Interface public dataFeed;
 
     mapping(address => uint256) public fundersToAmount;
 
     uint256 constant MINIMUM_VALUE = 10 * 10 ** 18; // USD
 
-    uint256 constant TARGET = 10 * 10 ** 18; // USD
+    uint256 constant TARGET = 100 * 10 ** 18; // USD
 
     address public owner;
 
@@ -20,10 +20,12 @@ contract FundMe {
 
     bool public getFundSuccess;
 
-    constructor(uint256 _lockTime) {
-        dataFeed = AggregatorV3Interface(
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
-        );
+    event FundWithDrawByOwner(uint256);
+
+    event RefundByFunder(address, uint256);
+
+    constructor(uint256 _lockTime, address dataFeedAddr) {
+        dataFeed = AggregatorV3Interface(dataFeedAddr);
         owner = msg.sender;
         deploymentTimestamp = block.timestamp;
         lockTime = _lockTime;
@@ -66,12 +68,13 @@ contract FundMe {
             "target is not reached"
         );
         bool success;
-        (success, ) = payable(msg.sender).call{value: address(this).balance}(
-            ""
-        );
+        uint256 balance = address(this).balance;
+        (success, ) = payable(msg.sender).call{value: balance}("");
         require(success, "transfer tx failed");
         fundersToAmount[msg.sender] = 0;
         getFundSuccess = true;
+        // emit event
+        emit FundWithDrawByOwner(balance);
     }
 
     function transferOwnership(address newOwner) public onlyOwner {
@@ -85,11 +88,11 @@ contract FundMe {
         );
         require(fundersToAmount[msg.sender] != 0, "there is no fund for you");
         bool success;
-        (success, ) = payable(msg.sender).call{
-            value: fundersToAmount[msg.sender]
-        }("");
+        uint256 balance = fundersToAmount[msg.sender];
+        (success, ) = payable(msg.sender).call{value: balance}("");
         require(success, "transfer tx failed");
         fundersToAmount[msg.sender] = 0;
+        emit RefundByFunder(msg.sender, balance);
     }
 
     function setErc20Addr(address _erc20Addr) public onlyOwner {

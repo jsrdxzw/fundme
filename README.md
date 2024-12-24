@@ -25,13 +25,22 @@ npx hardhat compile
 ```
 
 ### run deploy
+you can run `hardhat --help` to see all available commands
+
 ```shell
 npx hardhat run scripts/deployFundMe.js --network sepolia
 # or
 npx hardhat deploy-fundme --network sepolia
+# or
+npx hardhat deploy [--tags] [--network] [--reset] # reset 每次部署重新创建合约
 ```
 
 ### verify
 ```shell
 npx hardhat verify --network sepolia [address]
+```
+
+### Test
+```shell
+npx hardhat test [--network sepolia]
 ```
